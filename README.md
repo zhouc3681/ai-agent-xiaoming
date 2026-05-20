@@ -1,4 +1,3 @@
-[README.md](https://github.com/user-attachments/files/28074962/README.md)
 # WAIC 跨境 AI 员工平台 — 营销 / 经营评估 / 经营分析岗位规格与协同场景设计
 
 > 本仓库聚焦小畅负责的 3 位“小明”：营销小明（Marketing）/ 经营评估小明（Evaluation）/ 经营分析小明（Internal Analyst）。
