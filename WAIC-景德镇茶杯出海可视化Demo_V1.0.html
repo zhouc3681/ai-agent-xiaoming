@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WAIC | 景德镇茶杯出海 AI 小明可视化 Demo</title>
+  <style>
+    :root {
+      --bg: #f6f7f8;
+      --surface: #ffffff;
+      --surface-2: #eef3f1;
+      --ink: #18201f;
+      --muted: #64706d;
+      --line: #d7dedb;
+      --teal: #0f8b83;
+      --green: #2f8f5b;
+      --amber: #c77b21;
+      --red: #c94a3a;
+      --blue: #3b6ea8;
+      --shadow: 0 14px 36px rgba(31, 43, 40, 0.10);
+      --radius: 8px;
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, #ffffff 0%, #f6f7f8 38%, #eef3f1 100%);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.2fr) repeat(4, minmax(120px, 0.6fr));
+      gap: 12px;
+      align-items: stretch;
+      padding: 14px 18px;
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .brand strong {
+      font-size: 17px;
+      line-height: 1.3;
+    }
+
+    .brand span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .stat {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      min-width: 0;
+    }
+
+    .stat label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-bottom: 4px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 16px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: 240px minmax(420px, 1fr) 390px;
+      gap: 16px;
+      padding: 16px;
+      min-height: 0;
+    }
+
+    .rail,
+    .stage,
+    .side {
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 0;
+    }
+
+    .rail {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .rail-title,
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 5px 8px;
+      color: var(--muted);
+      background: #fbfcfc;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex: 0 0 auto;
+    }
+
+    .agent-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .agent {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: #fbfcfc;
+      transition: 180ms ease;
+    }
+
+    .agent.active {
+      border-color: rgba(15, 139, 131, 0.48);
+      background: #edf8f6;
+    }
+
+    .agent.done {
+      border-color: rgba(47, 143, 91, 0.45);
+      background: #f0f7f2;
+    }
+
+    .agent-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .agent-name {
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .agent-status {
+      color: var(--muted);
+      font-size: 11px;
+      flex: 0 0 auto;
+    }
+
+    .agent-steps {
+      display: grid;
+      gap: 4px;
+      margin-top: 8px;
+    }
+
+    .agent-step {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+    }
+
+    .agent-step::before {
+      content: "";
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      margin-top: 6px;
+      background: #a8b4b0;
+      flex: 0 0 auto;
+    }
+
+    .agent.active .agent-step::before,
+    .agent.done .agent-step::before {
+      background: var(--teal);
+    }
+
+    .handoff {
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .handoff-item {
+      display: grid;
+      grid-template-columns: 20px 1fr;
+      gap: 8px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .handoff-index {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: #e5ebe8;
+      color: #4c5a56;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .handoff-item.active {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .handoff-item.active .handoff-index {
+      background: var(--teal);
+      color: white;
+    }
+
+    .stage {
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .scene-head {
+      padding: 16px 18px 12px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .scene-kicker {
+      color: var(--teal);
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .scene-title {
+      font-size: 24px;
+      line-height: 1.25;
+      margin: 0 0 8px;
+    }
+
+    .scene-summary {
+      color: var(--muted);
+      line-height: 1.55;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    .timer {
+      min-width: 92px;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      background: var(--surface-2);
+    }
+
+    .timer strong {
+      display: block;
+      font-size: 18px;
+    }
+
+    .timer span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfc;
+    }
+
+    .tick {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: white;
+      padding: 8px 6px;
+      cursor: pointer;
+      color: var(--muted);
+      text-align: left;
+      min-height: 58px;
+    }
+
+    .tick.active {
+      border-color: var(--teal);
+      color: var(--ink);
+      background: #edf8f6;
+    }
+
+    .tick strong {
+      display: block;
+      font-size: 11px;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tick span {
+      display: block;
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+    .conversation {
+      padding: 18px;
+      display: grid;
+      grid-template-columns: 1fr 220px;
+      gap: 16px;
+      overflow: auto;
+      min-height: 0;
+    }
+
+    .chat {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .bubble {
+      border-radius: var(--radius);
+      padding: 12px 13px;
+      line-height: 1.55;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      background: white;
+    }
+
+    .bubble.user {
+      border-color: rgba(59, 110, 168, 0.35);
+      background: #f0f5fb;
+    }
+
+    .bubble.agent-bubble {
+      border-color: rgba(15, 139, 131, 0.34);
+      background: #eff9f7;
+    }
+
+    .bubble strong {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      color: #33413e;
+    }
+
+    .mini-board {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .mini-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 11px;
+      background: #fbfcfc;
+    }
+
+    .mini-card label {
+      color: var(--muted);
+      display: block;
+      font-size: 11px;
+      margin-bottom: 5px;
+    }
+
+    .mini-card strong {
+      font-size: 15px;
+      line-height: 1.3;
+    }
+
+    .progress {
+      height: 8px;
+      border-radius: 999px;
+      background: #dfe7e4;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--teal), var(--green));
+      transition: width 240ms ease;
+    }
+
+    .controls {
+      padding: 12px 18px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #fbfcfc;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      cursor: pointer;
+      min-height: 38px;
+    }
+
+    .button.primary {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: white;
+      font-weight: 700;
+    }
+
+    .button:focus-visible,
+    .tick:focus-visible {
+      outline: 3px solid rgba(15, 139, 131, 0.26);
+      outline-offset: 2px;
+    }
+
+    .side {
+      display: grid;
+      grid-template-rows: auto 180px 1fr;
+      overflow: hidden;
+    }
+
+    .side-section {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      min-width: 0;
+    }
+
+    .route-map {
+      position: relative;
+      height: 150px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(15, 139, 131, 0.10) 0%, rgba(59, 110, 168, 0.08) 55%, rgba(199, 123, 33, 0.10) 100%),
+        #fbfcfc;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .route-line {
+      position: absolute;
+      left: 12%;
+      right: 13%;
+      top: 74px;
+      height: 3px;
+      background: #c7d2cf;
+    }
+
+    .route-line span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--teal);
+      transition: width 260ms ease;
+    }
+
+    .place {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      min-width: 82px;
+    }
+
+    .place i {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: white;
+      border: 4px solid var(--teal);
+      box-shadow: 0 0 0 5px rgba(15, 139, 131, 0.12);
+    }
+
+    .place span {
+      font-size: 11px;
+      color: #2f3d3a;
+      text-align: center;
+      line-height: 1.25;
+    }
+
+    .place.jdz { left: 14%; top: 74px; }
+    .place.port { left: 49%; top: 74px; }
+    .place.la { left: 86%; top: 74px; }
+
+    .cards {
+      overflow: auto;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      min-height: 0;
+    }
+
+    .result-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: white;
+      padding: 12px;
+    }
+
+    .result-card h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+    }
+
+    .result-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .result-card ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      border-radius: 999px;
+      border: 1px solid #d5dfdc;
+      color: #475653;
+      background: #fbfcfc;
+      padding: 4px 7px;
+      font-size: 11px;
+    }
+
+    .tag.green { border-color: rgba(47, 143, 91, 0.35); color: var(--green); background: #eff8f2; }
+    .tag.amber { border-color: rgba(199, 123, 33, 0.35); color: var(--amber); background: #fff7ed; }
+    .tag.blue { border-color: rgba(59, 110, 168, 0.35); color: var(--blue); background: #f0f5fb; }
+
+    @media (max-width: 1180px) {
+      .workbench {
+        grid-template-columns: 210px minmax(360px, 1fr);
+      }
+
+      .side {
+        grid-column: 1 / -1;
+        grid-template-rows: auto 180px auto;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .topbar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .brand {
+        grid-column: 1 / -1;
+      }
+
+      .workbench {
+        grid-template-columns: 1fr;
+        padding: 10px;
+      }
+
+      .conversation {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .scene-head,
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .timer {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <strong>明心数智 · 景德镇茶杯出海 Demo</strong>
+        <span>六位 AI 小明 · 四个接力点 · 五分钟业务闭环</span>
+      </div>
+      <div class="stat">
+        <label>订单</label>
+        <strong id="orderId">JDZ-LA-260ML</strong>
+      </div>
+      <div class="stat">
+        <label>目的地</label>
+        <strong>Los Angeles, CA</strong>
+      </div>
+      <div class="stat">
+        <label>风险状态</label>
+        <strong id="riskState">待评估</strong>
+      </div>
+      <div class="stat">
+        <label>净利预测</label>
+        <strong id="profitState">待核算</strong>
+      </div>
+    </header>
+
+    <section class="workbench">
+      <aside class="rail">
+        <div class="rail-title">
+          <span>AI 小明矩阵</span>
+          <span class="pill"><span class="dot"></span>3 步模式</span>
+        </div>
+        <div class="agent-list" id="agentList"></div>
+        <div class="handoff">
+          <div class="rail-title"><span>节俭接力链路</span></div>
+          <div id="handoffList"></div>
+        </div>
+      </aside>
+
+      <section class="stage">
+        <div class="scene-head">
+          <div>
+            <div class="scene-kicker" id="sceneKicker">Scene 0</div>
+            <h1 class="scene-title" id="sceneTitle">目标输入与主控拆解</h1>
+            <p class="scene-summary" id="sceneSummary">观众输入商业目标，主控编排小明把任务拆成六个模块。</p>
+          </div>
+          <div class="timer">
+            <strong id="sceneTime">0:00-0:30</strong>
+            <span>现场节拍</span>
+          </div>
+        </div>
+
+        <nav class="timeline" id="timeline" aria-label="Demo 时间线"></nav>
+
+        <div class="conversation">
+          <div class="chat" id="chat"></div>
+          <div class="mini-board">
+            <div class="mini-card">
+              <label>当前主导</label>
+              <strong id="currentAgent">主控编排小明</strong>
+            </div>
+            <div class="mini-card">
+              <label>接力进度</label>
+              <strong id="handoffProgress">主控派单</strong>
+              <div class="progress"><span id="handoffBar"></span></div>
+            </div>
+            <div class="mini-card">
+              <label>本场景输出</label>
+              <strong id="sceneOutput">任务计划</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="btn-row">
+            <button class="button" id="prevBtn" type="button">上一步</button>
+            <button class="button" id="nextBtn" type="button">下一步</button>
+          </div>
+          <button class="button primary" id="actionBtn" type="button">开始交付</button>
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="side-section">
+          <div class="panel-title">
+            <span>在途链路</span>
+            <span class="pill" id="routeMode">待启动</span>
+          </div>
+          <div class="route-map" aria-label="景德镇到洛杉矶路线示意">
+            <div class="route-line"><span id="routeProgress"></span></div>
+            <div class="place jdz"><i></i><span>景德镇<br>工厂端</span></div>
+            <div class="place port"><i></i><span>盐田/广州<br>出境口岸</span></div>
+            <div class="place la"><i></i><span>洛杉矶<br>C 端买家</span></div>
+          </div>
+        </div>
+        <div class="cards" id="cards"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const agents = [
+      {
+        id: "orchestrator",
+        name: "主控编排小明",
+        steps: ["识别业务目标", "拆解六个模块", "控制四个接力点"]
+      },
+      {
+        id: "evaluation",
+        name: "经营评估小明",
+        steps: ["SKU 与包装入档", "履约与资金判断", "融资建议输出"]
+      },
+      {
+        id: "compliance",
+        name: "跨境合规审计小明",
+        steps: ["HS/FDA 合并预审", "出口退税封包", "Sales Tax 与数据合规"]
+      },
+      {
+        id: "logistics",
+        name: "全球物流调度小明",
+        steps: ["端到端路线生成", "海空方案对比", "异常切换决策"]
+      },
+      {
+        id: "marketing",
+        name: "多语言营销专家小明",
+        steps: ["达人合并筛选", "Brief 与 Listing 生成", "资产锁定与 ROI 回传"]
+      },
+      {
+        id: "analyst",
+        name: "经营分析小明",
+        steps: ["全链路成本归集", "单杯利润核算", "今日行动清单"]
+      },
+      {
+        id: "vault",
+        name: "白盒存证小明",
+        steps: ["关键证据采集", "哈希与决策快照", "审计回放"]
+      }
+    ];
+
+    const handoffs = [
+      "主控派单：目标拆成六个模块",
+      "合规放行：SKU 与准入结论交给物流",
+      "经营刷新：物流与营销参数进入利润核算",
+      "存证闭环：结果、单据、决策快照入库"
+    ];
+
+    const scenes = [
+      {
+        title: "目标输入与主控拆解",
+        time: "0:00-0:30",
+        agent: "orchestrator",
+        handoff: 0,
+        route: 4,
+        risk: "待评估",
+        profit: "待核算",
+        mode: "任务启动",
+        output: "六模块任务计划",
+        action: "开始交付",
+        summary: "观众只输入一次目标，主控编排小明把业务拆成六个模块和四个接力点。",
+        chat: [
+          ["user", "我想把一只景德镇手工茶杯完美交付到洛杉矶 C 端买家，全链路合规，并在 180 秒内算出是否赚钱。"],
+          ["agent", "已识别目标：商品履约、美国准入、海外营销、物流派送、利润核算、可信存证。现场采用节俭编排：6 位小明、4 个接力点、3 次观众确认。"]
+        ],
+        cards: [
+          ["任务编排", "主控小明已生成六个模块：供应链、合规、物流、营销、经营分析、可信存证。", ["6 位小明", "4 个接力点", "3 次点击"]],
+          ["观众体验", "现场不展示全部后台推理，只展示关键输入、判断与业务输出。", ["五分钟闭环", "结果优先"]]
+        ]
+      },
+      {
+        title: "景德镇端：SKU 与融资",
+        time: "0:30-1:10",
+        agent: "evaluation",
+        handoff: 0,
+        route: 18,
+        risk: "资料补全中",
+        profit: "待核算",
+        mode: "景德镇端",
+        output: "SKU 档案与融资建议",
+        action: "生成融资建议单",
+        summary: "经营评估小明把 SKU、包装、履约与资金缺口压缩成 3 步展示。",
+        chat: [
+          ["agent", "SKU 与包装已入档：高白泥陶瓷、260ml、约 180g、气泡膜 + 内盒 + 抗压外箱。"],
+          ["agent", "履约风险可控。采购账期与回款周期存在 ¥42,000 资金缺口，建议封装订单真实性证据申请低时延贸易融资。"]
+        ],
+        cards: [
+          ["SKU 数字档案", "JDZ-CUP-WHT-260ML 已生成，含材质、尺寸、重量、包装与检测报告索引。", ["高白泥陶瓷", "260ml", "防碎包装"]],
+          ["融资建议", "采购合同、订单、历史交易与经营数据可封装为数字资产包。", ["资金缺口 ¥42,000", "提交前确认"]]
+        ]
+      },
+      {
+        title: "跨境合规：准入与退税",
+        time: "1:10-1:55",
+        agent: "compliance",
+        handoff: 1,
+        route: 34,
+        risk: "合规可控",
+        profit: "待核算",
+        mode: "合规放行",
+        output: "清关与退税包",
+        action: "查看合规包",
+        summary: "合规小明把 HS、FDA、退税、Sales Tax 与数据出境合并为三张关键卡。",
+        chat: [
+          ["agent", "商品准入预审已完成：陶瓷器皿类 HS 归类建议已生成，食品接触器皿检测报告 PASS。"],
+          ["agent", "出口退税五步法已封包；加州 Sales Tax 与买家数据出境记录已进入经营核算。"]
+        ],
+        cards: [
+          ["商品准入合并卡", "HS Code 建议、FDA 食品接触器皿检测资料与监管条件合并展示。", ["HS 建议", "FDA PASS", "风险可控"]],
+          ["退税与税务", "资质核验、单证采集、四单对碰、疑点预审、申报包生成已完成。", ["退税封包", "Sales Tax 估算"]]
+        ]
+      },
+      {
+        title: "全球物流：路线与异常",
+        time: "1:55-2:40",
+        agent: "logistics",
+        handoff: 2,
+        route: 62,
+        risk: "港口拥堵预警",
+        profit: "重算中",
+        mode: "路线决策",
+        output: "物流履约方案",
+        action: "确认切换空运首批样品",
+        summary: "物流小明生成端到端路线，并把异常切换对利润的影响交给经营分析小明。",
+        chat: [
+          ["agent", "端到端路线已生成：景德镇工厂至出境口岸，跨境干线至洛杉矶，尾程匹配 USPS/FedEx/UPS。"],
+          ["agent", "模拟美西港口拥堵风险。建议首批达人样品切换空运，批量库存继续海运，兼顾时效与成本。"]
+        ],
+        cards: [
+          ["海空方案对比", "海运 12-15 天成本低，空运 3-5 天成本高。首批样品优先空运，库存批量保持海运。", ["双路线", "异常预案"]],
+          ["切换决策单", "空海运切换及海外仓分拨 ROI 决策单已生成，等待业务确认。", ["需确认", "利润联动"]]
+        ]
+      },
+      {
+        title: "洛杉矶端：达人与 Listing",
+        time: "2:40-3:25",
+        agent: "marketing",
+        handoff: 2,
+        route: 78,
+        risk: "营销启动",
+        profit: "重算中",
+        mode: "洛杉矶端",
+        output: "达人营销启动包",
+        action: "发送 Brief 并锁定样品",
+        summary: "营销小明把受众筛选、达人邀约、商品页和 ROI 参数合并输出。",
+        chat: [
+          ["agent", "已筛选洛杉矶本地美学生活、禅意茶道、手工艺、家居氛围类达人，命中 17 位候选人。"],
+          ["agent", "英文 Brief 与 Listing 已生成，商品叙事从东方器物转化为高品位生活方式。3 位达人适合首批样品寄送。"]
+        ],
+        cards: [
+          ["达人候选池", "按地域、互动率、内容风格和品牌匹配度排序，首批建议选择 3 位达人。", ["17 位候选", "3 位首发"]],
+          ["Brief + Listing", "一次生成达人邀约、短视频脚本与 Shopify/TikTok Shop 商品页文案。", ["英文文案", "资产锁定"]]
+        ]
+      },
+      {
+        title: "统一经营真相",
+        time: "3:25-4:20",
+        agent: "analyst",
+        handoff: 2,
+        route: 92,
+        risk: "利润可控",
+        profit: "¥164/杯",
+        mode: "经营刷新",
+        output: "利润核算与行动清单",
+        action: "生成今日行动清单",
+        summary: "经营分析小明把物流、营销、税费、汇损与退税全部回收到一张利润卡。",
+        chat: [
+          ["agent", "已完成成本归集：工厂成本、头程、干线、尾程、税费、广告、公耗、汇损与样品成本已统一核算。"],
+          ["agent", "单杯净利润预测 ¥164，毛利率约 33.5%。建议补洛杉矶库存、提高达人内容预算，并跟进退税申报包。"]
+        ],
+        cards: [
+          ["利润瀑布", "售价扣除工厂、物流、税费、广告、汇损后，仍保留正向利润空间。", ["净利 ¥164/杯", "毛利率 33.5%"]],
+          ["今日行动清单", "补货 200 件至洛杉矶仓；达人 Spark Ads 预算上调；退税包进入提交队列。", ["补库存", "调预算", "提退税"]]
+        ]
+      },
+      {
+        title: "可信存证：Compliance Vault",
+        time: "4:20-5:00",
+        agent: "vault",
+        handoff: 3,
+        route: 100,
+        risk: "可审计",
+        profit: "¥164/杯",
+        mode: "存证闭环",
+        output: "Hash 存证包",
+        action: "回放证据链",
+        summary: "白盒存证小明把单据、报告、流水、轨迹与 AI 决策快照统一进入审计链路。",
+        chat: [
+          ["agent", "已完成证据采集、哈希与决策快照、审计回放三步。"],
+          ["agent", "报关单、FDA 检测报告、银行流水、物流轨迹、达人合作记录和 AI 决策快照均已进入 Compliance Vault。"]
+        ],
+        cards: [
+          ["Compliance Vault", "每份关键证据生成唯一 Hash ID，保留时间戳、规则命中、模型版本与知识库版本。", ["Hash ID", "时间戳", "决策快照"]],
+          ["最终交付", "观众拿到履约方案、合规包、营销启动包、利润行动清单与审计回放入口。", ["可交付", "可复核", "可追溯"]]
+        ]
+      }
+    ];
+
+    let current = 0;
+
+    const agentList = document.getElementById("agentList");
+    const handoffList = document.getElementById("handoffList");
+    const timeline = document.getElementById("timeline");
+    const chat = document.getElementById("chat");
+    const cards = document.getElementById("cards");
+
+    function makeAgents() {
+      agentList.innerHTML = agents.map(agent => `
+        <article class="agent" data-agent="${agent.id}">
+          <div class="agent-head">
+            <span class="agent-name">${agent.name}</span>
+            <span class="agent-status">待命</span>
+          </div>
+          <div class="agent-steps">
+            ${agent.steps.map(step => `<span class="agent-step">${step}</span>`).join("")}
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function makeHandoffs() {
+      handoffList.innerHTML = handoffs.map((item, index) => `
+        <div class="handoff-item" data-handoff="${index}">
+          <span class="handoff-index">${index + 1}</span>
+          <span>${item}</span>
+        </div>
+      `).join("");
+    }
+
+    function makeTimeline() {
+      timeline.innerHTML = scenes.map((scene, index) => `
+        <button class="tick" type="button" data-scene="${index}">
+          <strong>${scene.time}</strong>
+          <span>${scene.title}</span>
+        </button>
+      `).join("");
+      timeline.querySelectorAll(".tick").forEach(button => {
+        button.addEventListener("click", () => {
+          current = Number(button.dataset.scene);
+          render();
+        });
+      });
+    }
+
+    function renderAgents(scene) {
+      document.querySelectorAll(".agent").forEach((node) => {
+        const index = agents.findIndex(agent => agent.id === node.dataset.agent);
+        const activeIndex = agents.findIndex(agent => agent.id === scene.agent);
+        node.classList.toggle("active", node.dataset.agent === scene.agent);
+        node.classList.toggle("done", index < activeIndex || current === scenes.length - 1);
+        const status = node.querySelector(".agent-status");
+        if (node.dataset.agent === scene.agent) {
+          status.textContent = "处理中";
+        } else if (index < activeIndex || current === scenes.length - 1) {
+          status.textContent = "已完成";
+        } else {
+          status.textContent = "待命";
+        }
+      });
+    }
+
+    function renderHandoffs(scene) {
+      document.querySelectorAll(".handoff-item").forEach(node => {
+        node.classList.toggle("active", Number(node.dataset.handoff) <= scene.handoff);
+      });
+    }
+
+    function renderCards(scene) {
+      cards.innerHTML = scene.cards.map(([title, body, tags]) => `
+        <article class="result-card">
+          <h3>${title}</h3>
+          <p>${body}</p>
+          <div class="tag-row">
+            ${tags.map((tag, index) => `<span class="tag ${index === 0 ? "green" : index === 1 ? "blue" : "amber"}">${tag}</span>`).join("")}
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderChat(scene) {
+      chat.innerHTML = scene.chat.map(([speaker, text]) => `
+        <div class="bubble ${speaker === "user" ? "user" : "agent-bubble"}">
+          <strong>${speaker === "user" ? "观众" : scene.agent === "orchestrator" ? "主控编排小明" : document.getElementById("currentAgent").textContent}</strong>
+          ${text}
+        </div>
+      `).join("");
+    }
+
+    function render() {
+      const scene = scenes[current];
+      const agent = agents.find(item => item.id === scene.agent);
+      document.getElementById("sceneKicker").textContent = `Scene ${current}`;
+      document.getElementById("sceneTitle").textContent = scene.title;
+      document.getElementById("sceneSummary").textContent = scene.summary;
+      document.getElementById("sceneTime").textContent = scene.time;
+      document.getElementById("currentAgent").textContent = agent.name;
+      document.getElementById("handoffProgress").textContent = handoffs[scene.handoff].split("：")[0];
+      document.getElementById("sceneOutput").textContent = scene.output;
+      document.getElementById("riskState").textContent = scene.risk;
+      document.getElementById("profitState").textContent = scene.profit;
+      document.getElementById("routeMode").textContent = scene.mode;
+      document.getElementById("routeProgress").style.width = `${scene.route}%`;
+      document.getElementById("handoffBar").style.width = `${((scene.handoff + 1) / handoffs.length) * 100}%`;
+      document.getElementById("actionBtn").textContent = scene.action;
+      document.querySelectorAll(".tick").forEach(node => node.classList.toggle("active", Number(node.dataset.scene) === current));
+      renderAgents(scene);
+      renderHandoffs(scene);
+      renderChat(scene);
+      renderCards(scene);
+    }
+
+    document.getElementById("prevBtn").addEventListener("click", () => {
+      current = Math.max(0, current - 1);
+      render();
+    });
+
+    document.getElementById("nextBtn").addEventListener("click", () => {
+      current = Math.min(scenes.length - 1, current + 1);
+      render();
+    });
+
+    document.getElementById("actionBtn").addEventListener("click", () => {
+      if (current < scenes.length - 1) {
+        current += 1;
+        render();
+      }
+    });
+
+    makeAgents();
+    makeHandoffs();
+    makeTimeline();
+    render();
+  </script>
+</body>
+</html>
